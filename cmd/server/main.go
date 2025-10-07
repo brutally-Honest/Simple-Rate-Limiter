@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/brutally-Honest/simple-rate-limiter/middleware"
+	"github.com/brutally-Honest/simple-rate-limiter/ratelimiter"
 	"github.com/joho/godotenv"
 )
 
@@ -21,12 +22,22 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	apiHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	strategy := ratelimiter.NewFixedWindowRateLimiter(10, 1*time.Second)
+
+	rateLimiter := middleware.NewRateLimitMiddleware(strategy)
+	limitHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Hit", time.Now())
 		fmt.Fprintf(w, "API endpoint - Hit at %s\n", time.Now().Format(time.RFC3339))
 	})
 
-	mux.Handle("/api", middleware.RateLimitMiddleware(apiHandler))
+	statsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		count := strategy.Stats(r.RemoteAddr)
+		w.WriteHeader(http.StatusAccepted)
+		fmt.Fprintf(w, "Requests from %s: %d\n", r.RemoteAddr, count)
+	})
+
+	mux.Handle("/rate-limit", rateLimiter.Wrap(limitHandler))
+	mux.Handle("/stats", statsHandler)
 
 	http.ListenAndServe(addr, mux)
 }
