@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/brutally-Honest/simple-rate-limiter/middleware"
 	"github.com/joho/godotenv"
 )
 
@@ -25,7 +26,7 @@ func main() {
 		fmt.Fprintf(w, "API endpoint - Hit at %s\n", time.Now().Format(time.RFC3339))
 	})
 
-	mux.Handle("/api", apiHandler)
+	mux.Handle("/api", middleware.RateLimitMiddleware(apiHandler))
 
 	http.ListenAndServe(portString, mux)
 }
