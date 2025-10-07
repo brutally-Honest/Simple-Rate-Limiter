@@ -14,10 +14,10 @@ func main() {
 	godotenv.Load()
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080" // fallback
+		port = "8080"
 	}
-	portString := fmt.Sprintf(":%s", port)
-	fmt.Printf("Server running on :%s\n", portString)
+	addr := fmt.Sprintf(":%s", port)
+	fmt.Printf("Server running on :%s\n", addr)
 
 	mux := http.NewServeMux()
 
@@ -28,5 +28,5 @@ func main() {
 
 	mux.Handle("/api", middleware.RateLimitMiddleware(apiHandler))
 
-	http.ListenAndServe(portString, mux)
+	http.ListenAndServe(addr, mux)
 }
