@@ -23,7 +23,8 @@ func main() {
 	mux := http.NewServeMux()
 
 	// strategy := ratelimiter.NewFixedWindow(10, 1*time.Second)
-	strategy := ratelimiter.NewSlidingWindow(10, 1*time.Second)
+	// strategy := ratelimiter.NewSlidingWindow(10, 1*time.Second)
+	strategy := ratelimiter.NewSlidingWindowCounter(10, 1*time.Second)
 
 	rateLimiter := middleware.NewRateLimitMiddleware(strategy)
 	limitHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
