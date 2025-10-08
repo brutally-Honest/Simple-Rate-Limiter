@@ -45,7 +45,7 @@ func (f *FixedWindow) Stats(ip string) int {
 	return f.ips[ip].count
 }
 
-func NewFixedWindowRateLimiter(limit int, window time.Duration) *FixedWindow {
+func NewFixedWindow(limit int, window time.Duration) *FixedWindow {
 	return &FixedWindow{
 		limit:  limit,
 		window: window,
