@@ -9,7 +9,7 @@ type SlidingWindow struct {
 	logs   map[string][]time.Time
 	limit  int
 	window time.Duration
-	mu     sync.RWMutex
+	mu     sync.Mutex
 }
 
 func NewSlidingWindow(limit int, window time.Duration) *SlidingWindow {
