@@ -24,7 +24,8 @@ func main() {
 
 	// strategy := ratelimiter.NewFixedWindow(10, 1*time.Second)
 	// strategy := ratelimiter.NewSlidingWindow(10, 1*time.Second)
-	strategy := ratelimiter.NewSlidingWindowCounter(10, 1*time.Second)
+	// strategy := ratelimiter.NewSlidingWindowCounter(10, 1*time.Second)
+	strategy := ratelimiter.NewTokenBucket(10, 0.5)
 
 	rateLimiter := middleware.NewRateLimitMiddleware(strategy)
 	limitHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
