@@ -9,82 +9,82 @@ type container struct {
 	size int
 }
 
+type request struct {
+	ip       string
+	response chan bool
+}
+
 type LeakyBucket struct {
 	mu        sync.Mutex
 	buckets   map[string]*container
 	threshold int
 	interval  time.Duration
-	requests  chan string
-}
-
-// central go routine to leak tokens and handle requests
-func (lb *LeakyBucket) run() {
-	ticker := time.NewTicker(lb.interval)
-	for {
-		select {
-		case ip := <-lb.requests:
-			lb.handleRequest(ip)
-
-		case <-ticker.C:
-			lb.leakAll()
-		}
-	}
-}
-
-func (lb *LeakyBucket) handleRequest(ip string) {
-	lb.mu.Lock()
-	defer lb.mu.Unlock()
-
-	b, ok := lb.buckets[ip]
-	if !ok {
-		b = &container{}
-		lb.buckets[ip] = b
-	}
-
-	if b.size < lb.threshold {
-		b.size++
-	}
-}
-
-func (lb *LeakyBucket) leakAll() {
-	lb.mu.Lock()
-	defer lb.mu.Unlock()
-
-	for _, b := range lb.buckets {
-		if b.size > 0 {
-			b.size--
-		}
-	}
+	requests  chan request
 }
 
 func NewLeakyBucket(threshold int, interval time.Duration) *LeakyBucket {
 	lb := &LeakyBucket{
-		interval:  interval,
 		threshold: threshold,
-		requests:  make(chan string, 1000),
+		interval:  interval,
+		requests:  make(chan request, 100),
 		buckets:   make(map[string]*container),
 	}
 	go lb.run()
 	return lb
 }
 
-func (lb *LeakyBucket) Allow(ip string) bool {
-	select {
-	case lb.requests <- ip:
-		return true
-	default:
-		return false
+// central go routine
+func (lb *LeakyBucket) run() {
+	ticker := time.NewTicker(lb.interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		// rate limit check requests
+		case req := <-lb.requests:
+			bucket, exists := lb.buckets[req.ip]
+			if !exists {
+				bucket = &container{size: 0}
+				lb.buckets[req.ip] = bucket
+			}
+
+			// Check if there's space in the bucket
+			if bucket.size < lb.threshold {
+				bucket.size++
+				req.response <- true
+			} else {
+				req.response <- false
+			}
+
+		// Leak from all buckets
+		case <-ticker.C:
+			for _, bucket := range lb.buckets {
+				if bucket.size > 0 {
+					bucket.size--
+				}
+			}
+		}
 	}
 }
 
-func (lb *LeakyBucket) Stats(ip string) int {
+func (lb *LeakyBucket) Allow(ip string) bool {
+	response := make(chan bool, 1)
 
+	lb.requests <- request{
+		ip:       ip,
+		response: response,
+	}
+
+	return <-response
+}
+
+func (lb *LeakyBucket) Stats(ip string) int {
 	lb.mu.Lock()
 	defer lb.mu.Unlock()
 
 	b, ok := lb.buckets[ip]
-	if ok {
-		return b.size
+	if !ok {
+		return 0
 	}
-	return 0
+	return b.size
 }
