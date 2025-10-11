@@ -42,6 +42,14 @@ func (f *FixedWindow) Allow(ip string) bool {
 }
 
 func (f *FixedWindow) Stats(ip string) int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	_, ok := f.ips[ip]
+	if !ok {
+		return 1
+	}
+
 	return f.ips[ip].count
 }
 

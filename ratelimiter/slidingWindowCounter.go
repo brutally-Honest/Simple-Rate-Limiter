@@ -11,22 +11,22 @@ type window struct {
 	currentStart time.Time
 }
 
-type SlidindWindowCounter struct {
+type SlidingWindowCounter struct {
 	mu      sync.Mutex
 	limit   int
 	window  time.Duration
 	windows map[string]*window
 }
 
-func NewSlidingWindowCounter(limit int, windowDuration time.Duration) *SlidindWindowCounter {
-	return &SlidindWindowCounter{
+func NewSlidingWindowCounter(limit int, windowDuration time.Duration) *SlidingWindowCounter {
+	return &SlidingWindowCounter{
 		limit:   limit,
 		window:  windowDuration,
 		windows: make(map[string]*window),
 	}
 }
 
-func (swc *SlidindWindowCounter) Allow(ip string) bool {
+func (swc *SlidingWindowCounter) Allow(ip string) bool {
 	swc.mu.Lock()
 	defer swc.mu.Unlock()
 
@@ -62,7 +62,10 @@ func (swc *SlidindWindowCounter) Allow(ip string) bool {
 	return false
 }
 
-func (swc *SlidindWindowCounter) Stats(ip string) int {
+func (swc *SlidingWindowCounter) Stats(ip string) int {
+	swc.mu.Lock()
+	defer swc.mu.Unlock()
+
 	data, exists := swc.windows[ip]
 	if !exists {
 		return 1

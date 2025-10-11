@@ -47,5 +47,13 @@ func (sw *SlidingWindow) Allow(ip string) bool {
 }
 
 func (sw *SlidingWindow) Stats(ip string) int {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+
+	_, ok := sw.logs[ip]
+	if !ok {
+		return 1
+	}
+
 	return len(sw.logs[ip])
 }

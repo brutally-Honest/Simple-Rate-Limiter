@@ -54,7 +54,6 @@ func (tb *TokenBucket) Allow(ip string) bool {
 	return false
 }
 
-// TODO: pending
 func (tb *TokenBucket) Stats(ip string) int {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
