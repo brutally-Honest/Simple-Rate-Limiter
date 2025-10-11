@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type WindowData struct {
+type windowData struct {
 	count       int
 	windowStart time.Time
 }
@@ -13,7 +13,7 @@ type WindowData struct {
 type FixedWindow struct {
 	limit  int
 	window time.Duration
-	ips    map[string]*WindowData
+	ips    map[string]*windowData
 	mu     sync.Mutex
 }
 
@@ -22,17 +22,14 @@ func (f *FixedWindow) Allow(ip string) bool {
 	defer f.mu.Unlock()
 
 	data, exists := f.ips[ip]
-	// cases
-	// if ip not found
-	// if ip time expired
-	if !exists || time.Since(f.ips[ip].windowStart) >= f.window {
-		f.ips[ip] = &WindowData{
+	if !exists || time.Since(data.windowStart) >= f.window {
+		f.ips[ip] = &windowData{
 			count:       1,
 			windowStart: time.Now(),
 		}
 		return true
 	}
-	// if count is within limit
+
 	if data.count < f.limit {
 		data.count++
 		return true
@@ -57,6 +54,6 @@ func NewFixedWindow(limit int, window time.Duration) *FixedWindow {
 	return &FixedWindow{
 		limit:  limit,
 		window: window,
-		ips:    make(map[string]*WindowData),
+		ips:    make(map[string]*windowData),
 	}
 }

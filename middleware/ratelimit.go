@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 
@@ -20,14 +19,12 @@ func NewRateLimitMiddleware(strategy ratelimiter.Strategy) *RateLimitMiddleware 
 
 func (rl *RateLimitMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-		fmt.Println("IP", ip)
-		if ip == "" {
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil || ip == "" {
 			ip = r.RemoteAddr
 		}
 		allowed := rl.strategy.Allow(ip)
 		if !allowed {
-			fmt.Println("Rate Limit exceeded")
 			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 			return
 		}

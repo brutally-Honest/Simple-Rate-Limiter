@@ -19,7 +19,7 @@ func main() {
 		port = "8080"
 	}
 	addr := fmt.Sprintf(":%s", port)
-	fmt.Printf("Server running on :%s\n", addr)
+	fmt.Printf("Server running on %s\n", addr)
 
 	mux := http.NewServeMux()
 
@@ -36,8 +36,8 @@ func main() {
 	})
 
 	statsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-		if ip == "" {
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil || ip == "" {
 			ip = r.RemoteAddr
 		}
 		count := strategy.Stats(ip)
