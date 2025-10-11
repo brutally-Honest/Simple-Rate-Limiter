@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -26,7 +27,7 @@ func main() {
 	// strategy := ratelimiter.NewSlidingWindow(10, 1*time.Second)
 	// strategy := ratelimiter.NewSlidingWindowCounter(10, 1*time.Second)
 	// strategy := ratelimiter.NewTokenBucket(10, 0.5)
-	strategy := ratelimiter.NewLeakyBucket(10, 10)
+	strategy := ratelimiter.NewLeakyBucket(10, 10*time.Second)
 
 	rateLimiter := middleware.NewRateLimitMiddleware(strategy)
 	limitHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -35,9 +36,13 @@ func main() {
 	})
 
 	statsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		count := strategy.Stats(r.RemoteAddr)
+		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+		if ip == "" {
+			ip = r.RemoteAddr
+		}
+		count := strategy.Stats(ip)
 		w.WriteHeader(http.StatusAccepted)
-		fmt.Fprintf(w, "Requests from %s: %d\n", r.RemoteAddr, count)
+		fmt.Fprintf(w, "Requests from %s: %d\n", ip, count)
 	})
 
 	mux.Handle("/rate-limit", rateLimiter.Wrap(limitHandler))

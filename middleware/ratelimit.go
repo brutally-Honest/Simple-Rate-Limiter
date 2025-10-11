@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/brutally-Honest/simple-rate-limiter/ratelimiter"
@@ -19,7 +20,11 @@ func NewRateLimitMiddleware(strategy ratelimiter.Strategy) *RateLimitMiddleware 
 
 func (rl *RateLimitMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := r.RemoteAddr
+		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+		fmt.Println("IP", ip)
+		if ip == "" {
+			ip = r.RemoteAddr
+		}
 		allowed := rl.strategy.Allow(ip)
 		if !allowed {
 			fmt.Println("Rate Limit exceeded")
