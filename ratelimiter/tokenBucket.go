@@ -56,9 +56,22 @@ func (tb *TokenBucket) Allow(ip string) bool {
 
 // TODO: pending
 func (tb *TokenBucket) Stats(ip string) int {
-	_, exists := tb.buckets[ip]
+	tb.mu.Lock()
+	defer tb.mu.Unlock()
+
+	data, exists := tb.buckets[ip]
 	if !exists {
-		return 1
+		return tb.capacity
 	}
-	return 0
+
+	// Refill tokens based on elapsed time since last refill
+	now := time.Now()
+	elapsed := now.Sub(data.lastRefill).Seconds()
+	data.tokens += elapsed * tb.refillRate
+	if data.tokens > float64(tb.capacity) {
+		data.tokens = float64(tb.capacity)
+	}
+	data.lastRefill = now
+
+	return int(data.tokens)
 }
