@@ -16,22 +16,21 @@ func main() {
 	godotenv.Load()
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "1783"
 	}
 	addr := fmt.Sprintf(":%s", port)
 	fmt.Printf("Server running on %s\n", addr)
 
 	mux := http.NewServeMux()
 
-	// strategy := ratelimiter.NewFixedWindow(10, 1*time.Second)
+	strategy := ratelimiter.NewFixedWindow(10, 1*time.Second)
 	// strategy := ratelimiter.NewSlidingWindow(10, 1*time.Second)
 	// strategy := ratelimiter.NewSlidingWindowCounter(10, 1*time.Second)
 	// strategy := ratelimiter.NewTokenBucket(10, 0.5)
-	strategy := ratelimiter.NewLeakyBucket(10, 10*time.Second)
+	// strategy := ratelimiter.NewLeakyBucket(10, 10*time.Second)
 
 	rateLimiter := middleware.NewRateLimitMiddleware(strategy)
 	limitHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Hit", time.Now())
 		fmt.Fprintf(w, "API endpoint - Hit at %s\n", time.Now().Format(time.RFC3339))
 	})
 
