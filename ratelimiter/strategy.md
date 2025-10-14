@@ -1,0 +1,109 @@
+# Rate Limiting Strategies
+
+## Fixed Window
+
+**Pros:**
+- Extremely simple to implement
+- Minimal memory overhead
+- Fast lookups and updates
+
+**Cons:**
+- Boundary burst problem: Users can make 2x requests at window boundaries
+- Not smooth - sharp resets at window boundaries
+- Less accurate rate limiting
+
+**Use When:** Simplicity trumps accuracy, and traffic is relatively uniform
+
+---
+
+## Sliding Window Log
+
+**Pros:**
+- Perfectly accurate - no boundary issues
+- Smooth rate limiting across time
+- Easy to debug with exact request logs
+
+**Cons:**
+- Memory-intensive (stores every timestamp)
+- Requires cleanup of old timestamps on every request
+- O(m) complexity per request for filtering
+
+**Use When:** Accuracy is critical and memory isn't a constraint
+
+---
+
+## Sliding Window Counter
+
+**Pros:**
+- Memory efficient like Fixed Window
+- Smooth like Sliding Window Log
+- Good approximation with low overhead
+- Best of both worlds
+
+**Cons:**
+- Slightly less accurate (weighted estimate)
+- More complex math than Fixed Window
+- Can still allow minor bursts
+
+**Use When:** General-purpose API rate limiting (best default choice)
+
+---
+
+## Token Bucket
+
+**Pros:**
+- Naturally handles burst traffic
+- Smooth token refill
+- Industry-standard algorithm
+- Flexible - easy to tune burst vs sustained rate
+
+**Cons:**
+- Conceptually more complex
+- Floating-point arithmetic (minor precision issues)
+- Harder to predict exact behavior
+
+**Use When:** Burst tolerance is important, API needs to feel responsive
+
+---
+
+## Leaky Bucket
+
+**Pros:**
+- Guarantees perfectly smooth output rate
+- No bursts - strict rate enforcement
+- Good for downstream protection
+
+**Cons:**
+- Strictest algorithm - rejects legitimate bursts
+- Requires background goroutine (resource overhead)
+- More complex cleanup and shutdown
+- Poor user experience under variable load
+
+**Use When:** Protecting fragile downstream systems requiring strict rate control
+
+---
+
+## Quick Comparison
+
+| Strategy                   | Memory   | Accuracy    | Burst Handling            | Complexity |
+| -------------------------- | -------- | ----------- | ------------------------- | ---------- |
+| **Fixed Window**           | O(n)     | ⚠️ Low      | Poor - Allows 2x burst    | Simple     |
+| **Sliding Window Log**     | O(n\*m)  | ✅ Exact    | Good - Precise tracking   | Medium     |
+| **Sliding Window Counter** | O(n)     | ✅ Good     | Good - Smooth             | Medium     |
+| **Token Bucket**           | O(n)     | ✅ Exact    | Excellent - Natural burst | Complex    |
+| **Leaky Bucket**           | O(n)     | ✅ Exact    | Poor - Strict rate        | Complex    |
+
+**Legend:** `n` = unique IPs, `m` = limit per window
+
+---
+
+## Observations
+
+**Most APIs:** Sliding Window Counter - great balance of accuracy, performance, and memory
+
+**Burst-tolerant:** Token Bucket - natural burst handling while protecting sustained rate
+
+**Simple/High-throughput:** Fixed Window - fast but watch for boundary abuse
+
+**Strict downstream protection:** Leaky Bucket - smooth, predictable output rate
+
