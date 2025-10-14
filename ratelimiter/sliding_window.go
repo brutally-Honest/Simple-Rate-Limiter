@@ -12,14 +12,6 @@ type SlidingWindow struct {
 	mu     sync.Mutex
 }
 
-func NewSlidingWindow(limit int, window time.Duration) *SlidingWindow {
-	return &SlidingWindow{
-		limit:  limit,
-		window: window,
-		logs:   make(map[string][]time.Time),
-	}
-}
-
 func (sw *SlidingWindow) Allow(ip string) bool {
 	sw.mu.Lock()
 	defer sw.mu.Unlock()
@@ -46,14 +38,10 @@ func (sw *SlidingWindow) Allow(ip string) bool {
 
 }
 
-func (sw *SlidingWindow) Stats(ip string) int {
-	sw.mu.Lock()
-	defer sw.mu.Unlock()
-
-	_, ok := sw.logs[ip]
-	if !ok {
-		return 1
+func NewSlidingWindow(limit int, window time.Duration) *SlidingWindow {
+	return &SlidingWindow{
+		limit:  limit,
+		window: window,
+		logs:   make(map[string][]time.Time),
 	}
-
-	return len(sw.logs[ip])
 }

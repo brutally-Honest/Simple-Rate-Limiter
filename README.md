@@ -16,7 +16,6 @@ This project implements a middleware-based rate limiting system for HTTP servers
 ## Pending
 
 - **Concurrent Request Testing**: Load testing with actual concurrent requests to validate thread-safety and performance under pressure
-- **Stats Improvements**: Fix inconsistent `Stats()` behavior across strategies and remove side effects
 - **Memory Cleanup**: Implement TTL-based cleanup for inactive IPs to prevent memory leaks
 
 ## Implemented Strategies

@@ -1,11 +1,10 @@
 package ratelimiter
 
 import (
-	"sync"
 	"time"
 )
 
-type container struct {
+type lbContainer struct {
 	size int
 }
 
@@ -15,25 +14,12 @@ type request struct {
 }
 
 type LeakyBucket struct {
-	mu        sync.Mutex
-	buckets   map[string]*container
+	buckets   map[string]*lbContainer
 	threshold int
 	interval  time.Duration
 	requests  chan request
 }
 
-func NewLeakyBucket(threshold int, interval time.Duration) *LeakyBucket {
-	lb := &LeakyBucket{
-		threshold: threshold,
-		interval:  interval,
-		requests:  make(chan request, 100),
-		buckets:   make(map[string]*container),
-	}
-	go lb.run()
-	return lb
-}
-
-// central go routine
 func (lb *LeakyBucket) run() {
 	ticker := time.NewTicker(lb.interval)
 	defer ticker.Stop()
@@ -44,7 +30,7 @@ func (lb *LeakyBucket) run() {
 		case req := <-lb.requests:
 			bucket, exists := lb.buckets[req.ip]
 			if !exists {
-				bucket = &container{size: 0}
+				bucket = &lbContainer{size: 0}
 				lb.buckets[req.ip] = bucket
 			}
 
@@ -78,13 +64,13 @@ func (lb *LeakyBucket) Allow(ip string) bool {
 	return <-response
 }
 
-func (lb *LeakyBucket) Stats(ip string) int {
-	lb.mu.Lock()
-	defer lb.mu.Unlock()
-
-	b, ok := lb.buckets[ip]
-	if !ok {
-		return 0
+func NewLeakyBucket(threshold int, interval time.Duration) *LeakyBucket {
+	lb := &LeakyBucket{
+		threshold: threshold,
+		interval:  interval,
+		requests:  make(chan request, 100), // default buffer of 100
+		buckets:   make(map[string]*lbContainer),
 	}
-	return b.size
+	go lb.run()
+	return lb
 }

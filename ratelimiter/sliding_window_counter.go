@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type window struct {
+type swcwindow struct {
 	prevCount    int
 	currCount    int
 	currentStart time.Time
@@ -15,15 +15,7 @@ type SlidingWindowCounter struct {
 	mu      sync.Mutex
 	limit   int
 	window  time.Duration
-	windows map[string]*window
-}
-
-func NewSlidingWindowCounter(limit int, windowDuration time.Duration) *SlidingWindowCounter {
-	return &SlidingWindowCounter{
-		limit:   limit,
-		window:  windowDuration,
-		windows: make(map[string]*window),
-	}
+	windows map[string]*swcwindow
 }
 
 func (swc *SlidingWindowCounter) Allow(ip string) bool {
@@ -34,7 +26,7 @@ func (swc *SlidingWindowCounter) Allow(ip string) bool {
 
 	data, exists := swc.windows[ip]
 	if !exists {
-		swc.windows[ip] = &window{
+		swc.windows[ip] = &swcwindow{
 			currCount:    1,
 			prevCount:    0,
 			currentStart: now,
@@ -62,19 +54,10 @@ func (swc *SlidingWindowCounter) Allow(ip string) bool {
 	return false
 }
 
-func (swc *SlidingWindowCounter) Stats(ip string) int {
-	swc.mu.Lock()
-	defer swc.mu.Unlock()
-
-	data, exists := swc.windows[ip]
-	if !exists {
-		return 1
+func NewSlidingWindowCounter(limit int, windowDuration time.Duration) *SlidingWindowCounter {
+	return &SlidingWindowCounter{
+		limit:   limit,
+		window:  windowDuration,
+		windows: make(map[string]*swcwindow),
 	}
-	elapsed := time.Since(data.currentStart)
-	if elapsed >= swc.window {
-		return 1
-	}
-	prevWeight := float64(swc.window-elapsed) / float64(swc.window)
-	estimatedCount := int(float64(data.prevCount)*prevWeight) + data.currCount
-	return estimatedCount
 }
