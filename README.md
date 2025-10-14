@@ -175,7 +175,7 @@ Processes requests from a bucket at a fixed rate using a background goroutine.
 
 ## Technical Highlights
 
-- Zero external dependencies for rate limiting logic (except `godotenv` for config)
+- Zero external dependencies for rate limiting logic
 - Idiomatic Go patterns throughout
 - Clean separation of concerns
 - Easy to extend with new strategies
