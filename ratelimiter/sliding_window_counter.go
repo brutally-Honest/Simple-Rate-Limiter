@@ -1,6 +1,7 @@
 package ratelimiter
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -16,6 +17,9 @@ type SlidingWindowCounter struct {
 	limit   int
 	window  time.Duration
 	windows map[string]*swcwindow
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func (swc *SlidingWindowCounter) Allow(ip string) bool {
@@ -54,10 +58,44 @@ func (swc *SlidingWindowCounter) Allow(ip string) bool {
 	return false
 }
 
+func (swc *SlidingWindowCounter) cleanAll() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-swc.ctx.Done():
+			return
+		case <-ticker.C:
+			swc.clean()
+		}
+	}
+}
+
+func (swc *SlidingWindowCounter) clean() {
+	swc.mu.Lock()
+	defer swc.mu.Unlock()
+
+	for ip, data := range swc.windows {
+		if time.Since(data.currentStart) >= swc.window {
+			delete(swc.windows, ip)
+		}
+	}
+}
+
+func (swc *SlidingWindowCounter) Close() {
+	swc.cancel()
+}
+
 func NewSlidingWindowCounter(limit int, windowDuration time.Duration) *SlidingWindowCounter {
-	return &SlidingWindowCounter{
+	ctx, cancel := context.WithCancel(context.Background())
+	swc := &SlidingWindowCounter{
 		limit:   limit,
 		window:  windowDuration,
 		windows: make(map[string]*swcwindow),
+		ctx:     ctx,
+		cancel:  cancel,
 	}
+	go swc.cleanAll()
+	return swc
 }
