@@ -1,6 +1,7 @@
 package ratelimiter
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -10,6 +11,9 @@ type SlidingWindow struct {
 	limit  int
 	window time.Duration
 	mu     sync.Mutex
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func (sw *SlidingWindow) Allow(ip string) bool {
@@ -56,13 +60,44 @@ func (sw *SlidingWindow) Allow(ip string) bool {
 	return false
 }
 
-func NewSlidingWindow(limit int, window time.Duration) *SlidingWindow {
+func (sw *SlidingWindow) clean() {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
 
+	for ip, data := range sw.logs {
+		if len(data) > 0 && time.Since(data[0]) >= sw.window {
+			delete(sw.logs, ip)
+		}
+	}
+}
+
+func (sw *SlidingWindow) cleanAll() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-sw.ctx.Done():
+			return
+		case <-ticker.C:
+			sw.clean()
+		}
+	}
+}
+
+func (sw *SlidingWindow) Close() {
+	sw.cancel()
+}
+
+func NewSlidingWindow(limit int, window time.Duration) *SlidingWindow {
+	ctx, cancel := context.WithCancel(context.Background())
 	sw := &SlidingWindow{
 		limit:  limit,
 		window: window,
 		logs:   make(map[string][]time.Time),
+		ctx:    ctx,
+		cancel: cancel,
 	}
-
+	go sw.cleanAll()
 	return sw
 }
