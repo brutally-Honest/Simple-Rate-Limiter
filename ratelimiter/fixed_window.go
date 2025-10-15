@@ -1,6 +1,7 @@
 package ratelimiter
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -16,6 +17,9 @@ type FixedWindow struct {
 	window time.Duration
 	ips    map[string]*fixedWindowData
 	mu     sync.Mutex
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func (f *FixedWindow) Allow(ip string) bool {
@@ -40,10 +44,46 @@ func (f *FixedWindow) Allow(ip string) bool {
 	return false
 }
 
+// clear ips
+func (f *FixedWindow) clean() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	for ip, data := range f.ips {
+		if time.Since(data.windowStart) >= f.window {
+			delete(f.ips, ip)
+		}
+	}
+}
+
+func (f *FixedWindow) cleanAll() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-f.ctx.Done():
+			return
+		case <-ticker.C:
+			f.clean()
+		}
+	}
+}
+
+// Graceful shutdown
+func (f *FixedWindow) Close() {
+	f.cancel()
+}
+
 func NewFixedWindow(limit int, window time.Duration) *FixedWindow {
-	return &FixedWindow{
+	ctx, cancel := context.WithCancel(context.Background())
+	fw := &FixedWindow{
 		limit:  limit,
 		window: window,
 		ips:    make(map[string]*fixedWindowData),
+		ctx:    ctx,
+		cancel: cancel,
 	}
+	go fw.cleanAll()
+	return fw
 }
