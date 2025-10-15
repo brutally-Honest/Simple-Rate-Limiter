@@ -2,7 +2,6 @@ package ratelimiter
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 )
@@ -37,7 +36,6 @@ func (f *FixedWindow) Allow(ip string) bool {
 
 	if data.count < f.limit {
 		data.count++
-		fmt.Println("Count", data.count, "Time", time.Now().Format("15:04:05.000"))
 		return true
 	}
 
