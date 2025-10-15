@@ -67,6 +67,10 @@ func (sw *SlidingWindow) cleanAll() {
 	}
 }
 
+func (sw *SlidingWindow) Close() {
+	sw.cancel()
+}
+
 func NewSlidingWindow(limit int, window time.Duration) *SlidingWindow {
 	ctx, cancel := context.WithCancel(context.Background())
 	sw := &SlidingWindow{
