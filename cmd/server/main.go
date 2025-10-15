@@ -19,7 +19,7 @@ func main() {
 	strategy := ratelimiter.NewFixedWindow(10, 1*time.Second)
 	// strategy := ratelimiter.NewSlidingWindow(10, 1*time.Second)
 	// strategy := ratelimiter.NewSlidingWindowCounter(10, 1*time.Second)
-	// strategy := ratelimiter.NewTokenBucket(10, 0.5)
+	// strategy := ratelimiter.NewTokenBucket(10, 2.5)
 	// strategy := ratelimiter.NewLeakyBucket(10, 10*time.Second)
 	defer strategy.Close()
 

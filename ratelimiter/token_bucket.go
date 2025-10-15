@@ -7,8 +7,9 @@ import (
 )
 
 type tBucket struct {
-	lastRefill time.Time
-	tokens     float64
+	lastRefill  time.Time
+	lastRequest time.Time
+	tokens      float64
 }
 
 type TokenBucket struct {
@@ -41,7 +42,9 @@ func (tb *TokenBucket) Allow(ip string) bool {
 	if data.tokens > float64(tb.capacity) {
 		data.tokens = float64(tb.capacity)
 	}
+
 	data.lastRefill = now
+	data.lastRequest = now
 
 	if data.tokens >= 1 {
 		data.tokens -= 1
@@ -54,7 +57,7 @@ func (tb *TokenBucket) clean() {
 	defer tb.mu.Unlock()
 
 	for ip, data := range tb.buckets {
-		if time.Since(data.lastRefill) >= 5*time.Minute {
+		if time.Since(data.lastRequest) >= 5*time.Minute {
 			delete(tb.buckets, ip)
 		}
 	}
