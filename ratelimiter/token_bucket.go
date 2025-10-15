@@ -1,6 +1,7 @@
 package ratelimiter
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -15,6 +16,9 @@ type TokenBucket struct {
 	capacity   int
 	refillRate float64
 	buckets    map[string]*tBucket
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // Push based
@@ -45,11 +49,44 @@ func (tb *TokenBucket) Allow(ip string) bool {
 	}
 	return false
 }
+func (tb *TokenBucket) clean() {
+	tb.mu.Lock()
+	defer tb.mu.Unlock()
+
+	for ip, data := range tb.buckets {
+		if time.Since(data.lastRefill) >= 5*time.Minute {
+			delete(tb.buckets, ip)
+		}
+	}
+}
+
+func (tb *TokenBucket) cleanAll() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-tb.ctx.Done():
+			return
+		case <-ticker.C:
+			tb.clean()
+		}
+	}
+}
+
+func (tb *TokenBucket) Close() {
+	tb.cancel()
+}
 
 func NewTokenBucket(capacity int, refillRate float64) *TokenBucket {
-	return &TokenBucket{
+	ctx, cancel := context.WithCancel(context.Background())
+	tb := &TokenBucket{
 		capacity:   capacity,
 		refillRate: refillRate,
 		buckets:    make(map[string]*tBucket),
+		ctx:        ctx,
+		cancel:     cancel,
 	}
+	go tb.cleanAll()
+	return tb
 }
