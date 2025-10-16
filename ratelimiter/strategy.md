@@ -8,6 +8,9 @@
 | Cons     | - Boundary burst problem: Users can make 2x requests at window boundaries<br>- Not smooth - sharp resets at window boundaries<br>- Less accurate rate limiting |
 | Use When | Simplicity trumps accuracy, and traffic is relatively uniform                                                                                                  |
 
+- For comprehensive test observations:
+  [Fixed Window Boundary Exploitation Observations](../cmd//loadtest//observations.md)
+
 ---
 
 ## Sliding Window Log
