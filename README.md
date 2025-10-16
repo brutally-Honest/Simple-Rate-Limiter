@@ -20,13 +20,14 @@ Production-ready HTTP rate limiter in Go with five different strategies using a 
 | Token Bucket           | Refills tokens at a constant rate; requests consume tokens     |
 | Leaky Bucket           | Processes requests from a bucket at a fixed rate (background)  |
 
-For detailed pros/cons and use cases, see [strategy.md](ratelimiter/strategy.md)
+For detailed pros/cons and use cases, see [Rate Limiting Strategies](ratelimiter/strategy.md)
 
 ## Key Learnings
 
 ### Concurrency
 
 - Mutex vs Channels: Most strategies use sync.Mutex for simplicity; Leaky Bucket demonstrates channel-based coordination
+- Context Management: context.WithCancel() for graceful goroutine shutdown across all strategies
 - Race Conditions: Critical to identify shared state and protect all access paths
 
 ### Design Patterns
@@ -35,15 +36,17 @@ For detailed pros/cons and use cases, see [strategy.md](ratelimiter/strategy.md)
 - Middleware Pattern: Standard Go HTTP pattern for cross-cutting concerns
 - Constructor Pattern: New\* functions encapsulate initialization complexity
 
-### Algorithm Tradeoffs
+### Rate Limiting Algorithm Tradeoffs
 
 - No Perfect Solution: Each algorithm optimizes for different constraints
 - Boundary Problems: Window boundaries and float precision edge cases matter
 - Memory vs Accuracy: Sliding Window Log vs Counter exemplifies this trade-off
 
-## Further Enhancements
+## Future Enhancements
 
+- Unit Tests: Add comprehensive tests for all rate limiting strategies, including edge cases, concurrent access patterns, and boundary conditions
 - Configurable memory cleanup: Add configurable cleanup intervals and max idle times for better memory management across all strategies
+- Distributed Rate Limiting: Current implementation stores rate limit data locally per server instance, consider adding Redis/database coordination for shared state across multiple servers
 
 ## Technical Notes
 
